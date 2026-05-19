@@ -64,6 +64,62 @@ local function testTransposer(address)
   os.sleep(1)
 end
 
+local function getTransposerContentSummary(address)
+  local trans = component.proxy(address)
+  if not trans then return "[Недоступен]" end
+  
+  local contents = {}
+  
+  for side = 0, 5 do
+    -- Жидкости
+    local ok_tanks, count = pcall(trans.getTankCount, side)
+    if ok_tanks and count and count > 0 then
+      for tankIdx = 1, count do
+        local ok_fluid, fluid = pcall(trans.getFluidInTank, side, tankIdx)
+        if ok_fluid and fluid and fluid.name and fluid.amount > 0 then
+          table.insert(contents, fluid.name)
+        end
+      end
+    end
+    
+    -- Предметы
+    local ok_stacks, stacks = pcall(trans.getAllStacks, side)
+    if ok_stacks and stacks then
+      local ok_all, slots = pcall(stacks.getAll)
+      if ok_all and slots then
+        for _, slot in pairs(slots) do
+          if slot and slot.label and slot.size > 0 then
+            table.insert(contents, slot.label)
+          end
+        end
+      end
+    end
+  end
+  
+  local seen = {}
+  local unique = {}
+  for _, item in ipairs(contents) do
+    if not seen[item] then
+      seen[item] = true
+      table.insert(unique, item)
+    end
+  end
+  
+  if #unique == 0 then
+    return "[Пусто]"
+  else
+    local limit = 3
+    if #unique > limit then
+      local extra = #unique - limit
+      local truncated = {}
+      for i = 1, limit do table.insert(truncated, unique[i]) end
+      return "[" .. table.concat(truncated, ", ") .. " + " .. extra .. "]"
+    else
+      return "[" .. table.concat(unique, ", ") .. "]"
+    end
+  end
+end
+
 local function configureTransposers(regData)
   local transposers = {}
   for addr, type in component.list("transposer") do
@@ -113,7 +169,8 @@ local function configureTransposers(regData)
             print("Привязка транспозера для: " .. t.key:upper() .. " -> " .. fieldName)
             print("Список подключенных транспозеров:")
             for idx, addr in ipairs(transposers) do
-              print(string.format(" %d. %s", idx, addr:sub(1, 8) .. "..."))
+              local summary = getTransposerContentSummary(addr)
+              print(string.format(" %d. %s %s", idx, addr:sub(1, 8) .. "...", summary))
             end
             print()
             print("Вы можете протестировать транспозер (подать редстоун-вспышку).")
