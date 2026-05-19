@@ -51,6 +51,11 @@ if regData.role then
 end
 _G.waterline_role = config.role
 
+-- Принудительно выводим логи на экран для роли Daemon
+if config.role == "daemon" then
+  config.logger.printToScreen = true
+end
+
 if regData.lineController and regData.lineController.machineAddress then
   config.lineController.machineAddress = regData.lineController.machineAddress
 end
@@ -76,6 +81,11 @@ local computer = require("computer")
 local component = require("component")
 local filesystem = require("filesystem")
 
+-- Принудительная привязка к выбранному в setup.lua монитору
+if regData.screenAddress and component.isAvailable("gpu") then
+  pcall(function() component.gpu.bind(regData.screenAddress) end)
+end
+
 -- Инициализируем сетевую плату (модем)
 local networkOk, netErr = network.init(config.network.port)
 if (config.role == "daemon" or config.role == "gui") and not networkOk then
@@ -89,6 +99,10 @@ local mainLogger = loggerLib:new(config.logger, "Main")
 print("==================================================")
 print(" WATER LINE CONTROL v2 - Запуск...")
 print(" Текущая роль: " .. config.role:upper())
+if config.role == "daemon" then
+  print(" [F5] - Остановить и обновить скрипты")
+  print(" [Q]  - Выйти в консоль (Ctrl+C)")
+end
 print("==================================================")
 os.sleep(1) -- Короткая пауза для чтения
 

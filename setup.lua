@@ -272,6 +272,44 @@ local function autoDiscoverGtMachines(regData)
   os.sleep(2)
 end
 
+local function configureScreen(regData)
+  local screens = {}
+  for addr, _ in component.list("screen") do
+    table.insert(screens, addr)
+  end
+
+  if #screens <= 1 then
+    regData.screenAddress = nil
+    return
+  end
+
+  printHeader()
+  print("Обнаружено несколько мониторов в сети.")
+  print("Хотите привязать этот компьютер к конкретному монитору? (y/n): ")
+  local choice = io.read():lower()
+  if choice == "y" then
+    while true do
+      printHeader()
+      print("Выберите монитор для этого компьютера:")
+      for idx, addr in ipairs(screens) do
+        print(string.format(" %d. %s", idx, addr:sub(1, 8) .. "..."))
+      end
+      print()
+      io.write("Выбор: ")
+      local num = tonumber(io.read())
+      if num and screens[num] then
+        regData.screenAddress = screens[num]
+        break
+      else
+        print("Неверный ввод.")
+        os.sleep(1)
+      end
+    end
+  else
+    regData.screenAddress = nil
+  end
+end
+
 local function configureDiscord(regData)
   printHeader()
   print("Настройка Discord Webhook (опционально):")
@@ -296,6 +334,8 @@ local function main()
     return
   end
 
+  configureScreen(regData)
+
   if regData.role == "standalone" or regData.role == "daemon" then
     autoDiscoverGtMachines(regData)
     configureTransposers(regData)
@@ -307,6 +347,9 @@ local function main()
   if ok then
     print("Успех: Конфигурация успешно сохранена в реестр!")
     print("Роль: " .. regData.role:upper())
+    if regData.screenAddress then
+      print("Привязанный монитор: " .. regData.screenAddress:sub(1, 8) .. "...")
+    end
     print("Запустите main.lua для запуска системы.")
   else
     print("Ошибка сохранения реестра: " .. tostring(err))
