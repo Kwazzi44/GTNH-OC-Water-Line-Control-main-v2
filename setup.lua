@@ -123,67 +123,104 @@ local function getTransposerContentSummary(address)
   end
 end
 
-local function configureTransposers(regData)
-  local transposers = {}
-  for addr, type in component.list("transposer") do
-    table.insert(transposers, addr)
-  end
-
-  if #transposers == 0 then
-    printHeader()
-    print("ВНИМАНИЕ: На этом компьютере не обнаружено подключенных транспозеров!")
-    print("Если вы настраиваете роль 'gui', это нормально.")
-    print("Если это 'standalone' или 'daemon', подключите транспозеры через кабели.")
-    print()
-    io.write("Нажмите Enter для продолжения...")
-    io.read()
-    return
-  end
-
+local function configureTiersMenu(regData)
   local tiers = {
-    { key = "t3", label = "Tier 3: Flocculation (1 transposer)", fields = {"transposerAddress"} },
-    { key = "t4", label = "Tier 4: pH Adjustment (2 transposers)", fields = {"hydrochloricAcidTransposerAddress", "sodiumHydroxideTransposerAddress"} },
-    { key = "t5", label = "Tier 5: Plasma Heater (2 transposers)", fields = {"plasmaTransposerAddress", "coolantTransposerAddress"} },
-    { key = "t6", label = "Tier 6: UV Treatment (1 transposer)", fields = {"transposerAddress"} },
-    { key = "t7", label = "Tier 7: Degasser (4 transposers)", fields = {"inertGasTransposerAddress", "superConductorTransposerAddress", "netroniumTransposerAddress", "coolantTransposerAddress"} },
-    { key = "t8", label = "Tier 8: Extractor (1 transposer)", fields = {"transposerAddress"} },
+    { key = "t3", label = "Tier 3 Flocculator", fields = {"transposerAddress"} },
+    { key = "t4", label = "Tier 4 pH Adjustment", fields = {"hydrochloricAcidTransposerAddress", "sodiumHydroxideTransposerAddress"} },
+    { key = "t5", label = "Tier 5 Plasma Heater", fields = {"plasmaTransposerAddress", "coolantTransposerAddress"} },
+    { key = "t6", label = "Tier 6 UV Treatment", fields = {"transposerAddress"} },
+    { key = "t7", label = "Tier 7 Degasser", fields = {"inertGasTransposerAddress", "superConductorTransposerAddress", "netroniumTransposerAddress", "coolantTransposerAddress"} },
+    { key = "t8", label = "Tier 8 Extractor", fields = {"transposerAddress"} },
   }
 
-  for _, t in ipairs(tiers) do
-    if not regData.controllers[t.key] then
-      regData.controllers[t.key] = { enable = false }
+  while true do
+    printHeader()
+    print("НАСТРОЙКА КОНТРОЛЛЕРОВ И ТРАНСПОЗЕРОВ:")
+    print("--------------------------------------------------------------------------------")
+    for idx, t in ipairs(tiers) do
+      local c = regData.controllers[t.key]
+      local status = c.enable and "ВКЛЮЧЕН" or "ВЫКЛЮЧЕН"
+      
+      -- Формируем описание привязанных транспозеров
+      local transInfo = {}
+      for _, f in ipairs(t.fields) do
+        local addr = c[f]
+        if addr then
+          table.insert(transInfo, f:gsub("TransposerAddress", "") .. "=" .. addr:sub(1, 4))
+        else
+          table.insert(transInfo, f:gsub("TransposerAddress", "") .. "=---")
+        end
+      end
+      
+      print(string.format(" %d. %s [%s] (%s)", idx, t.label, status, table.concat(transInfo, ", ")))
     end
-
-    while true do
+    print(" 7. Назад в главное меню")
+    print()
+    io.write("Выберите тир для настройки (1-7): ")
+    local choice = tonumber(io.read())
+    
+    if choice == 7 then
+      break
+    elseif choice and tiers[choice] then
+      local t = tiers[choice]
+      local c = regData.controllers[t.key]
+      
+      -- 1. Спрашиваем про включение/выключение
       printHeader()
-      print("Настройка " .. t.label)
-      print("Хотите включить этот тир в работу? (y/n): ")
+      print("Настройка: " .. t.label)
+      print("Текущий статус: " .. (c.enable and "ВКЛЮЧЕН" or "ВЫКЛЮЧЕН"))
+      io.write("Включить этот тир в работу? (y/n/оставить без изменений [Enter]): ")
       local enableChoice = io.read():lower()
-      if enableChoice == "n" then
-        regData.controllers[t.key].enable = false
-        break
-      elseif enableChoice == "y" then
-        regData.controllers[t.key].enable = true
+      if enableChoice == "y" then
+        c.enable = true
+      elseif enableChoice == "n" then
+        c.enable = false
+      end
+      
+      -- Если тир включен, настраиваем транспозеры
+      if c.enable then
+        local transposers = {}
+        for addr, _ in component.list("transposer") do
+          table.insert(transposers, addr)
+        end
         
-        -- Проходим по каждому транспозеру для этого тира
         for _, fieldName in ipairs(t.fields) do
+          local currentAddr = c[fieldName]
           while true do
             printHeader()
-            print("Привязка транспозера для: " .. t.key:upper() .. " -> " .. fieldName)
-            print("Список подключенных транспозеров:")
+            print("Настройка: " .. t.label)
+            print("Параметр: " .. fieldName)
+            if currentAddr then
+              print("Текущий транспозер: " .. currentAddr)
+            else
+              print("Текущий транспозер: НЕ ПРИВЯЗАН")
+            end
+            print("--------------------------------------------------------------------------------")
+            if #transposers == 0 then
+              print("В сети не найдено транспозеров!")
+              io.write("Нажмите Enter для продолжения...")
+              io.read()
+              break
+            end
+            
+            print("Список доступных транспозеров:")
             for idx, addr in ipairs(transposers) do
               local summary = getTransposerContentSummary(addr)
               print(string.format(" %d. %s %s", idx, addr:sub(1, 8) .. "...", summary))
             end
             print()
-            print("Вы можете протестировать транспозер (подать редстоун-вспышку).")
-            print("Для привязки введите: номер")
-            print("Для теста введите: t <номер>")
+            if currentAddr then
+              print(" Введите: [Enter] чтобы оставить текущий транспозер")
+            end
+            print(" Введите: t <номер> чтобы подать сигнал на транспозер")
+            print(" Введите: <номер> чтобы привязать новый")
             print()
             io.write("Выбор: ")
             local input = io.read():lower()
             
-            if input:sub(1, 2) == "t " then
+            if input == "" and currentAddr then
+              break -- Оставляем текущий
+            elseif input:sub(1, 2) == "t " then
               local num = tonumber(input:sub(3))
               if num and transposers[num] then
                 testTransposer(transposers[num])
@@ -194,7 +231,7 @@ local function configureTransposers(regData)
             else
               local num = tonumber(input)
               if num and transposers[num] then
-                regData.controllers[t.key][fieldName] = transposers[num]
+                c[fieldName] = transposers[num]
                 break
               else
                 print("Неверный ввод. Попробуйте еще раз.")
@@ -203,7 +240,6 @@ local function configureTransposers(regData)
             end
           end
         end
-        break
       end
     end
   end
@@ -312,34 +348,65 @@ end
 
 local function main()
   local regData = registry.load()
-  
-  if not selectRole(regData) then
-    print("Установка отменена.")
-    return
+  -- Инициализируем структуры если их нет
+  regData.controllers = regData.controllers or {}
+  for _, tier in ipairs({"t3", "t4", "t5", "t6", "t7", "t8"}) do
+    regData.controllers[tier] = regData.controllers[tier] or { enable = false }
   end
+  regData.lineController = regData.lineController or {}
 
-  configureScreen(regData)
-
-  if regData.role == "standalone" or regData.role == "daemon" then
-    autoDiscoverGtMachines(regData)
-    configureTransposers(regData)
-  end
-
-  local ok, err = registry.save(regData)
-  printHeader()
-  if ok then
-    print("Успех: Конфигурация успешно сохранена в реестр!")
-    print("Роль: " .. regData.role:upper())
+  while true do
+    printHeader()
+    print("ГЛАВНОЕ МЕНЮ НАСТРОЙКИ:")
+    print(" 1. Выбрать роль компьютера (Текущая: " .. (regData.role or "НЕ ЗАДАНА"):upper() .. ")")
+    
+    local screenStr = "по умолчанию"
     if regData.screenAddress then
-      print("Привязанный монитор: " .. regData.screenAddress:sub(1, 8) .. "...")
+      screenStr = regData.screenAddress:sub(1, 8) .. "..."
     end
-    print("Запустите main.lua для запуска системы.")
-  else
-    print("Ошибка сохранения реестра: " .. tostring(err))
+    print(" 2. Привязать монитор (Текущий: " .. screenStr .. ")")
+    
+    if regData.role == "standalone" or regData.role == "daemon" then
+      print(" 3. Сканировать приборы GregTech (WPP, T3-T8)")
+      print(" 4. Настройка тиров и транспозеров (T3-T8)")
+    end
+    print(" 5. Сохранить и выйти")
+    print(" 6. Выйти без сохранения")
+    print()
+    io.write("Выберите пункт: ")
+    local choice = io.read()
+    
+    if choice == "1" then
+      selectRole(regData)
+    elseif choice == "2" then
+      configureScreen(regData)
+    elseif choice == "3" and (regData.role == "standalone" or regData.role == "daemon") then
+      autoDiscoverGtMachines(regData)
+    elseif choice == "4" and (regData.role == "standalone" or regData.role == "daemon") then
+      configureTiersMenu(regData)
+    elseif choice == "5" then
+      local ok, err = registry.save(regData)
+      printHeader()
+      if ok then
+        print("Успех: Конфигурация успешно сохранена в реестр!")
+        print("Роль: " .. regData.role:upper())
+        if regData.screenAddress then
+          print("Привязанный монитор: " .. regData.screenAddress:sub(1, 8) .. "...")
+        end
+        print("Запустите main.lua для запуска системы.")
+      else
+        print("Ошибка сохранения реестра: " .. tostring(err))
+      end
+      print()
+      io.write("Нажмите Enter для завершения...")
+      io.read()
+      break
+    elseif choice == "6" then
+      print("Выход без сохранения.")
+      os.sleep(1)
+      break
+    end
   end
-  print()
-  io.write("Нажмите Enter для завершения...")
-  io.read()
 end
 
 main()
