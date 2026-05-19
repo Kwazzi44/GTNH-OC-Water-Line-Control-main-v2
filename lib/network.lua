@@ -17,6 +17,12 @@ function network.init(port)
   if component.isAvailable("modem") then
     network.modem = component.modem
     network.modem.open(network.port)
+    
+    -- Для беспроводных плат устанавливаем радиус действия (по умолчанию 0)
+    if network.modem.isWireless and network.modem.isWireless() then
+      pcall(function() network.modem.setStrength(400) end)
+    end
+    
     return true
   else
     return false, "Modem component not found"
