@@ -50,7 +50,7 @@ function gui.drawLayout()
   
   theme.drawFooter({
     {"F1", "Setup"},
-    {"F6", "Update"},
+    {"F5", "Update"},
     {"F3", "Redraw"},
     {"F4", "Logs"},
     {"Q", "Quit"},
