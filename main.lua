@@ -389,7 +389,7 @@ local function handleKey(ev, addr, char, code)
     os.execute("lua setup.lua")
     computer.shutdown(true)
     return true
-  elseif input.pressed(ev, code, char, keyboard.keys.f2) then
+  elseif input.pressed(ev, code, char, keyboard.keys.f6) then
     shutdownControllers()
     network.stopListening()
     if component.gpu then
