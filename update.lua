@@ -24,6 +24,7 @@ local FILES = {
   { "/lib/gui.lua",                     "lib/gui.lua"                     },
   { "/lib/state.lua",                   "lib/state.lua"                   },
   { "/lib/logger.lua",                  "lib/logger.lua"                  },
+  { "/lib/log_viewer.lua",              "lib/log_viewer.lua"              },
   { "/lib/input-lib.lua",               "lib/input-lib.lua"               },
   { "/lib/gt-sensor-parser.lua",        "lib/gt-sensor-parser.lua"        },
   { "/lib/component-discover-lib.lua",  "lib/component-discover-lib.lua"  },

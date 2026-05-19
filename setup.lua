@@ -22,6 +22,9 @@ end
 local function selectRole(regData)
   while true do
     printHeader()
+    local currentRole = regData.role or "не установлена"
+    print("Текущая настроенная роль: " .. currentRole:upper())
+    print("--------------------------------------------------------------------------------")
     print("Выберите роль для этого компьютера:")
     print(" 1. Standalone (Все-в-одном: опрашивает машины, управляет и рисует GUI)")
     print(" 2. Daemon (Сервер: опрашивает машины, управляет по сети, без экрана)")

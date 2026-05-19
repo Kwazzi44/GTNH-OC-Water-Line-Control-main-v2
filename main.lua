@@ -18,7 +18,7 @@ if #args > 0 then
     local filesToDelete = {
       "main.lua", "setup.lua", "config.lua", "registry.lua", "update.lua",
       "waterline.log", "/usr/etc/waterline_registry.cfg",
-      "lib/logger.lua", "lib/theme.lua", "lib/gui.lua", "lib/state.lua",
+      "lib/logger.lua", "lib/log_viewer.lua", "lib/theme.lua", "lib/gui.lua", "lib/state.lua",
       "lib/state-machine-lib.lua", "lib/component-discover-lib.lua", "lib/gt-sensor-parser.lua",
       "lib/input-lib.lua", "lib/controller-init-lib.lua", "lib/cycle-end-lib.lua", "lib/network.lua",
       "src/line-controller.lua", "src/t3-controller.lua", "src/t4-controller.lua",
@@ -84,6 +84,13 @@ end
 
 local loggerLib = require("lib.logger")
 local mainLogger = loggerLib:new(config.logger, "Main")
+
+-- Выводим четкое сообщение в терминал при старте программы
+print("==================================================")
+print(" WATER LINE CONTROL v2 - Запуск...")
+print(" Текущая роль: " .. config.role:upper())
+print("==================================================")
+os.sleep(1) -- Короткая пауза для чтения
 
 mainLogger:info("Starting Water Line Control v2 (Role: " .. config.role:upper() .. ")...")
 
@@ -343,7 +350,7 @@ local function pushUpdateToDaemon()
   
   local files = {
     "main.lua", "setup.lua", "lib/network.lua", "lib/theme.lua", "lib/gui.lua",
-    "lib/state.lua", "lib/logger.lua", "lib/input-lib.lua", "lib/gt-sensor-parser.lua",
+    "lib/state.lua", "lib/logger.lua", "lib/log_viewer.lua", "lib/input-lib.lua", "lib/gt-sensor-parser.lua",
     "lib/component-discover-lib.lua", "lib/state-machine-lib.lua", "lib/cycle-end-lib.lua",
     "lib/controller-init-lib.lua", "src/line-controller.lua", "src/t3-controller.lua",
     "src/t4-controller.lua", "src/t5-controller.lua", "src/t6-controller.lua",
