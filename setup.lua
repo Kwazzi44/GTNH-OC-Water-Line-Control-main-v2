@@ -209,6 +209,69 @@ local function configureTransposers(regData)
   end
 end
 
+local function autoDiscoverGtMachines(regData)
+  printHeader()
+  print("Поиск GregTech машин в сети...")
+  print("Это нужно, чтобы Daemon не тратил время на сканирование при каждом запуске.")
+  print("--------------------------------------------------------------------------------")
+  
+  local machines = {}
+  for addr, _ in component.list("gt_machine") do
+    table.insert(machines, addr)
+  end
+
+  if #machines == 0 then
+    print("Машины GregTech не найдены в сети.")
+    os.sleep(1)
+    return
+  end
+
+  regData.lineController = regData.lineController or {}
+  if not regData.controllers then
+    regData.controllers = {}
+  end
+  for _, tier in ipairs({"t3", "t4", "t5", "t6", "t7", "t8"}) do
+    regData.controllers[tier] = regData.controllers[tier] or { enable = false }
+  end
+
+  local nameMap = {
+    ["multimachine.purificationplant"] = { target = regData.lineController, label = "Очистная установка (WPP)" },
+    ["multimachine.purificationunitflocculator"] = { target = regData.controllers.t3, label = "Tier 3 Flocculator" },
+    ["multimachine.purificationunitphadjustment"] = { target = regData.controllers.t4, label = "Tier 4 pH Adjustment" },
+    ["multimachine.purificationunitplasmaheater"] = { target = regData.controllers.t5, label = "Tier 5 Plasma Heater" },
+    ["multimachine.purificationunituvtreatment"] = { target = regData.controllers.t6, label = "Tier 6 UV Treatment" },
+    ["multimachine.purificationunitdegasser"] = { target = regData.controllers.t7, label = "Tier 7 Degasser" },
+    ["multimachine.purificationunitextractor"] = { target = regData.controllers.t8, label = "Tier 8 Extractor" }
+  }
+
+  for idx, addr in ipairs(machines) do
+    io.write(string.format("[%d/%d] Опрос %s... ", idx, #machines, addr:sub(1, 8)))
+    
+    local ok, proxy = pcall(component.proxy, addr)
+    if ok and proxy then
+      local ok2, name = pcall(proxy.getName)
+      if ok2 and name then
+        local match = nameMap[name]
+        if match then
+          match.target.machineAddress = addr
+          print("Найден: " .. match.label)
+        else
+          print("Неизвестный прибор (" .. name .. ")")
+        end
+      else
+        print("Ошибка получения имени")
+      end
+    else
+      print("Ошибка подключения")
+    end
+    os.sleep(0.1)
+  end
+  
+  print("--------------------------------------------------------------------------------")
+  print("Сканирование завершено.")
+  os.sleep(2)
+end
+
 local function configureDiscord(regData)
   printHeader()
   print("Настройка Discord Webhook (опционально):")
@@ -234,6 +297,7 @@ local function main()
   end
 
   if regData.role == "standalone" or regData.role == "daemon" then
+    autoDiscoverGtMachines(regData)
     configureTransposers(regData)
     configureDiscord(regData)
   end
