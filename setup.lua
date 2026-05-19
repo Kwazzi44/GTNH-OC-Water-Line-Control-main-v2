@@ -310,22 +310,6 @@ local function configureScreen(regData)
   end
 end
 
-local function configureDiscord(regData)
-  printHeader()
-  print("Настройка Discord Webhook (опционально):")
-  print("Хотите настроить вебхук отправки уведомлений о сбоях? (y/n): ")
-  local choice = io.read():lower()
-  if choice == "y" then
-    io.write("Введите URL вебхука Discord: ")
-    local url = io.read()
-    if url ~= "" then
-      regData.discordWebhook = url
-    end
-  else
-    regData.discordWebhook = nil
-  end
-end
-
 local function main()
   local regData = registry.load()
   
@@ -339,7 +323,6 @@ local function main()
   if regData.role == "standalone" or regData.role == "daemon" then
     autoDiscoverGtMachines(regData)
     configureTransposers(regData)
-    configureDiscord(regData)
   end
 
   local ok, err = registry.save(regData)
